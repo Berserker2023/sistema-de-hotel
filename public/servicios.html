@@ -542,7 +542,9 @@
                     reservas.forEach(r => {
                         const option = document.createElement('option');
                         option.value = r.id;
-                        option.textContent = `RES-${r.id} | ${r.cliente || r.docIdCliente} | Hab. ${r.idHabitacion}`;
+                        const cliente = r.cliente || r.docIdCliente || 'Cliente';
+                        const habitacion = r.idHabitacion || r.id_habitacion || r.habitacion || r.numeroHabitacion || r.numero || r.roomNumber || r.idRoom || '—';
+                        option.textContent = `RES-${r.id} | ${cliente} | Hab. ${habitacion}`;
                         select.appendChild(option);
                     });
                 }
@@ -584,7 +586,7 @@
             }
 
             try {
-                const response = await fetch(`${API_URL}/servicios/reserva/${idReserva}`, {
+                const response = await fetch(`${API_URL}/servicios/${idReserva}/servicios`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
@@ -619,7 +621,7 @@
 
         async function cargarTotal(idReserva) {
             try {
-                const response = await fetch(`${API_URL}/servicios/total/${idReserva}`, {
+                const response = await fetch(`${API_URL}/servicios/${idReserva}/total-servicios`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
@@ -683,23 +685,10 @@
         }
 
         async function eliminarConsumo(idDetalle) {
-            if (!confirm('¿Eliminar este consumo?')) return;
-            
-            try {
-                const response = await fetch(`${API_URL}/servicios/consumo/${idDetalle}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (response.ok) {
-                    alert('Consumo eliminado');
-                    cargarConsumos(reservaSeleccionada);
-                } else {
-                    alert('Error al eliminar');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
+            // Eliminación de consumos (DetalleServicio) no está implementada
+            // en el backend. Mostrar mensaje al usuario.
+            alert('Eliminar consumo no está disponible en este momento (no implementado en el servidor).');
+            return;
         }
 
         document.getElementById('selectReserva').addEventListener('change', (e) => {
