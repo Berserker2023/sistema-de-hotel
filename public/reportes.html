@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Recepción - Reportes</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #F0F2F5; color: #1A2C3E; }
+        .app-container { display: flex; min-height: 100vh; }
+        .sidebar { width: 280px; background: #0F2B3D; color: white; position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar-header { padding: 30px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h2 { font-size: 22px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-menu { padding: 20px 0; }
+        .menu-item { padding: 12px 24px; display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.7); transition: all 0.3s; cursor: pointer; font-size: 14px; text-decoration: none; }
+        .menu-item:hover, .menu-item.active { background: #1E4A6E; color: white; border-left: 3px solid #4A9EFF; }
+        .main-content { margin-left: 280px; flex: 1; padding: 24px 32px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; background: white; padding: 16px 24px; border-radius: 16px; }
+        .date-info { font-size: 14px; color: #5A6E7F; }
+        .user-welcome { display: flex; align-items: center; gap: 20px; }
+        .logout-btn { background: #DC2626; color: white; border: none; padding: 8px 20px; border-radius: 10px; cursor: pointer; }
+        .page-header { margin-bottom: 24px; }
+        .page-header h1 { font-size: 28px; color: #1A2C3E; }
+        .tabs { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; border-bottom: 1px solid #E5E9F0; padding-bottom: 12px; }
+        .tab-btn { padding: 8px 20px; background: none; border: none; font-size: 14px; cursor: pointer; border-radius: 20px; }
+        .tab-btn.active { background: #1E4A6E; color: white; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .card { background: white; border-radius: 20px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card h3 { font-size: 18px; margin-bottom: 20px; color: #1E4A6E; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #E5E9F0; }
+        th { background: #F8FAFC; font-weight: 600; color: #1E4A6E; }
+        .btn-secondary { background: #4A9EFF; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; margin-bottom: 20px; }
+        .empty-message { text-align: center; padding: 40px; color: #5A6E7F; }
+        .footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid #E5E9F0; display: flex; justify-content: space-between; font-size: 12px; color: #5A6E7F; }
+        .status-ok { color: #10B981; font-weight: 500; }
+        .chart-container { display: flex; align-items: flex-end; gap: 20px; padding: 20px; min-height: 300px; }
+        .chart-bar { flex: 1; text-align: center; }
+        .bar { background: #4A9EFF; border-radius: 8px 8px 0 0; transition: height 0.3s; }
+        .bar-label { margin-top: 8px; font-size: 12px; }
+        @media (max-width: 768px) { .sidebar { display: none; } .main-content { margin-left: 0; } }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header"><h2>🏨 Recepción</h2><p>Hotel Premium</p></div>
+            <div class="sidebar-menu">
+                <a href="/index.html" class="menu-item">📊 Inicio</a>
+                <a href="/dashboard.html" class="menu-item">📈 Dashboard</a>
+                <a href="/reservas.html" class="menu-item">📅 Reservas</a>
+                <a href="/habitaciones.html" class="menu-item">🛏️ Habitaciones</a>
+                <a href="/clientes.html" class="menu-item">👥 Clientes</a>
+                <a href="/servicios.html" class="menu-item">🍽️ Servicios</a>
+                <a href="/pagos.html" class="menu-item">💰 Pagos/Caja</a>
+                <a href="/reportes.html" class="menu-item active">📊 Reportes</a>
+                <a href="/recepcionistas.html" class="menu-item">👔 Recepcionistas</a>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="date-info" id="fechaActual"></div>
+                <div class="user-welcome"><span>Bienvenido, <strong id="nombreUsuario">Cargando...</strong></span><button class="logout-btn" onclick="logout()">Cerrar Sesión</button></div>
+            </div>
+            <div class="page-header"><h1>📊 Reportes y Análisis</h1><p>Visualice métricas clave del hotel.</p></div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="clientes">🏆 Clientes Frecuentes</button>
+                <button class="tab-btn" data-tab="habitaciones">🛏️ Habitaciones Más Usadas</button>
+                <button class="tab-btn" data-tab="servicios">🍽️ Servicios Más Vendidos</button>
+                <button class="tab-btn" data-tab="ocupacion">🏢 Ocupación por Sucursal</button>
+                <button class="tab-btn" data-tab="ingresos">💰 Ingresos Mensuales</button>
+            </div>
+
+            <div id="tab-clientes" class="tab-pane active"><div class="card"><h3>🏆 Top 10 Clientes Frecuentes</h3><div id="clientesContent"><div class="empty-message">Cargando...</div></div></div></div>
+            <div id="tab-habitaciones" class="tab-pane"><div class="card"><h3>🛏️ Habitaciones Más Reservadas</h3><div id="habitacionesContent"><div class="empty-message">Cargando...</div></div></div></div>
+            <div id="tab-servicios" class="tab-pane"><div class="card"><h3>🍽️ Servicios Más Vendidos</h3><div id="serviciosContent"><div class="empty-message">Cargando...</div></div></div></div>
+            <div id="tab-ocupacion" class="tab-pane"><div class="card"><h3>🏢 Ocupación por Sucursal</h3><div id="ocupacionContent"><div class="empty-message">Cargando...</div></div></div></div>
+            <div id="tab-ingresos" class="tab-pane"><div class="card"><h3>💰 Ingresos Mensuales</h3><div id="ingresosContent"><div class="empty-message">Cargando...</div></div></div></div>
+
+            <div class="footer">
+                <span>© 2024 Recepción. Gestión Hotelera Profesional.</span>
+                <span>Estado del Servidor: <span class="status-ok">● Óptimo v1.0.4</span></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:4000/api';
+        let token = localStorage.getItem('token');
+        if (!token) window.location.href = '/login.html';
+
+        function formatFecha() { return new Date().toLocaleDateString('es-ES'); }
+        document.getElementById('fechaActual').innerText = formatFecha();
+
+        async function cargarUsuario() {
+            try {
+                const res = await fetch(`${API_URL}/auth/perfil`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.status === 401) logout();
+                const data = await res.json();
+                if (data.success) document.getElementById('nombreUsuario').innerHTML = `${data.usuario.nombres} ${data.usuario.apellidos}`;
+            } catch(e) { console.error(e); }
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+                cargarReporte(btn.dataset.tab);
+            });
+        });
+
+        async function cargarReporte(tipo) {
+            const endpoints = {
+                clientes: `${API_URL}/reportes/clientes-frecuentes`,
+                habitaciones: `${API_URL}/reportes/habitaciones-mas-usadas`,
+                servicios: `${API_URL}/reportes/servicios-mas-vendidos`,
+                ocupacion: `${API_URL}/reportes/ocupacion-sucursal`,
+                ingresos: `${API_URL}/reportes/ingresos-mensuales`
+            };
+            try {
+                const res = await fetch(endpoints[tipo], { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    const data = await res.json();
+                    renderReporte(tipo, data);
+                } else document.getElementById(`${tipo}Content`).innerHTML = '<div class="empty-message">Error al cargar reporte</div>';
+            } catch(e) { console.error(e); document.getElementById(`${tipo}Content`).innerHTML = '<div class="empty-message">Error al cargar</div>'; }
+        }
+
+        function renderReporte(tipo, data) {
+            const container = document.getElementById(`${tipo}Content`);
+            if (!data || data.length === 0) { container.innerHTML = '<div class="empty-message">No hay datos disponibles</div>'; return; }
+            
+            if (tipo === 'clientes') {
+                let html = '<table><thead><tr><th>Cliente</th><th>Total Reservas</th><th>Total Gastado</th></tr></thead><tbody>';
+                data.forEach(item => { html += `<tr><td>${item.cliente}</td><td>${item.total_reservas}</td><td>$${parseFloat(item.total_gastado || item.total_hospedaje || 0).toFixed(2)}</td></tr>`; });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+            else if (tipo === 'habitaciones') {
+                let html = '<table><thead><tr><th>Habitación</th><th>Tipo</th><th>Veces Reservada</th></tr></thead><tbody>';
+                data.forEach(item => { html += `<tr><td>${item.id}</td><td>${item.tipo}</td><td>${item.veces_reservada}</td></tr>`; });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+            else if (tipo === 'servicios') {
+                let html = '<table><thead><tr><th>Servicio</th><th>Cantidad Vendida</th><th>Total Generado</th></tr></thead><tbody>';
+                data.forEach(item => { html += `<tr><td>${item.nombre}</td><td>${item.cantidad_vendida}</td><td>$${parseFloat(item.total_generado || 0).toFixed(2)}</td></tr>`; });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+            else if (tipo === 'ocupacion') {
+                let html = '<table><thead><tr><th>Sucursal</th><th>Total Habitaciones</th><th>Ocupadas</th><th>Disponibles</th><th>% Ocupación</th></tr></thead><tbody>';
+                data.forEach(item => {
+                    const porcentaje = ((item.ocupadas / item.total_habitaciones) * 100).toFixed(1);
+                    html += `<tr><td>${item.sucursal}</td><td>${item.total_habitaciones}</td><td>${item.ocupadas}</td><td>${item.disponibles}</td><td>${porcentaje}%</td></tr>`;
+                });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+            else if (tipo === 'ingresos') {
+                let html = '<table><thead><tr><th>Año</th><th>Mes</th><th>Total Ingresos</th></tr></thead><tbody>';
+                data.forEach(item => { html += `<tr><td>${item.anio}</td><td>${item.mes}</td><td>$${parseFloat(item.total_ingresos || 0).toFixed(2)}</td></tr>`; });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+        }
+
+        function logout() { localStorage.clear(); window.location.href = '/login.html'; }
+
+        cargarUsuario();
+        cargarReporte('clientes');
+    </script>
+</body>
+</html>

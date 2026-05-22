@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Premium - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F0F2F5;
+            color: #1A2C3E;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #0F2B3D 0%, #1A3A4D 100%);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 30px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 8px;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: #1E4A6E;
+            color: white;
+            border-left: 4px solid #4A9EFF;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 24px 32px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .date-info {
+            font-size: 14px;
+            color: #5A6E7F;
+        }
+
+        .user-welcome {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-welcome strong {
+            color: #1E4A6E;
+            font-size: 16px;
+        }
+
+        .logout-btn {
+            background: #DC2626;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #B91C1C;
+            transform: translateY(-1px);
+        }
+
+        .dashboard-title {
+            margin-bottom: 24px;
+        }
+
+        .dashboard-title h1 {
+            font-size: 28px;
+            color: #1A2C3E;
+        }
+
+        .dashboard-title p {
+            color: #5A6E7F;
+            margin-top: 4px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .kpi-title {
+            font-size: 13px;
+            color: #5A6E7F;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1E4A6E;
+        }
+
+        .kpi-trend {
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .trend-up { color: #10B981; }
+        .trend-down { color: #EF4444; }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #E5E9F0;
+        }
+
+        .card-header h3 {
+            font-size: 18px;
+            color: #1A2C3E;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 250px;
+            margin: 20px 0;
+        }
+
+        .bar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .bar {
+            width: 50px;
+            background: #4A9EFF;
+            border-radius: 8px 8px 0 0;
+            transition: height 0.5s ease;
+            cursor: pointer;
+        }
+
+        .bar:hover {
+            background: #1E4A6E;
+        }
+
+        .bar-label {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #5A6E7F;
+        }
+
+        .bar-value {
+            font-size: 11px;
+            color: #1E4A6E;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .activity-list {
+            list-style: none;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #E5E9F0;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            background: #EFF6FF;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .activity-details {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .activity-time {
+            font-size: 11px;
+            color: #5A6E7F;
+            margin-top: 2px;
+        }
+
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .quick-btn {
+            background: #F0F2F5;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-btn:hover {
+            background: #E5E9F0;
+            transform: translateX(3px);
+        }
+
+        .quick-btn h4 {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .quick-btn p {
+            font-size: 11px;
+            color: #5A6E7F;
+        }
+
+        .footer {
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #E5E9F0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #5A6E7F;
+        }
+
+        .status-ok {
+            color: #10B981;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #5A6E7F;
+        }
+
+        @media (max-width: 1200px) {
+            .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .two-columns { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏨 Hotel Premium</h2>
+                <p>Sistema de Gestión Hotelera</p>
+            </div>
+            <div class="sidebar-menu">
+                <a href="/index.html" class="menu-item">📊 Inicio</a>
+                <a href="/dashboard.html" class="menu-item active">📈 Dashboard</a>
+                <a href="/reservas.html" class="menu-item">📅 Reservas</a>
+                <a href="/habitaciones.html" class="menu-item">🛏️ Habitaciones</a>
+                <a href="/clientes.html" class="menu-item">👥 Clientes</a>
+                <a href="/servicios.html" class="menu-item">🍽️ Servicios</a>
+                <a href="/pagos.html" class="menu-item">💰 Pagos/Caja</a>
+                <a href="/reportes.html" class="menu-item">📊 Reportes</a>
+                <a href="/recepcionistas.html" class="menu-item">👔 Recepcionistas</a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="date-info" id="fechaActual"></div>
+                <div class="user-welcome">
+                    <span>Bienvenido, <strong id="nombreUsuario">Cargando...</strong></span>
+                    <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+
+            <div id="dashboardContent">
+                <div class="dashboard-title">
+                    <h1>Dashboard</h1>
+                    <p>Bienvenido de nuevo. Aquí tienes un resumen del estado actual del hotel.</p>
+                </div>
+
+                <div class="kpi-grid" id="kpiGrid">
+                    <div class="kpi-card"><div class="kpi-title">📊 TOTAL RESERVAS</div><div class="kpi-value">---</div><div class="kpi-trend">Cargando...</div></div>
+                    <div class="kpi-card"><div class="kpi-title">👥 TOTAL CLIENTES</div><div class="kpi-value">---</div><div class="kpi-trend">Cargando...</div></div>
+                    <div class="kpi-card"><div class="kpi-title">🛏️ HAB. OCUPADAS</div><div class="kpi-value">---</div><div class="kpi-trend">Cargando...</div></div>
+                    <div class="kpi-card"><div class="kpi-title">💰 INGRESOS TOTALES</div><div class="kpi-value">---</div><div class="kpi-trend">Cargando...</div></div>
+                    <div class="kpi-card"><div class="kpi-title">🍽️ VENTAS SERVICIOS</div><div class="kpi-value">---</div><div class="kpi-trend">Room service y Spa</div></div>
+                </div>
+
+                <div class="two-columns">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h3>📈 Ingresos por Fecha</h3>
+                            <span style="font-size: 12px; color: #5A6E7F;">Últimos 7 días</span>
+                        </div>
+                        <div id="chartContainer">
+                            <div class="loading">Cargando gráfico...</div>
+                        </div>
+                        <div style="margin-top: 16px; text-align: center; font-size: 12px; color: #10B981;">
+                            🎯 Meta: 95% alcanzada
+                        </div>
+                    </div>
+
+                    <div class="content-card">
+                        <div class="card-header">
+                            <h3>📋 Actividad Reciente</h3>
+                            <span style="font-size: 12px; color: #5A6E7F;">Últimas acciones</span>
+                        </div>
+                        <ul class="activity-list" id="activityList">
+                            <li class="activity-item">
+                                <div class="activity-icon">🔑</div>
+                                <div class="activity-details">
+                                    <div class="activity-title">Cargando actividades...</div>
+                                    <div class="activity-time"></div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <div class="card-header">
+                        <h3>⚡ Acceso Rápido</h3>
+                    </div>
+                    <div class="quick-grid">
+                        <a href="/nueva-reserva.html" class="quick-btn" style="text-decoration: none; display: block;">
+                            <h4>✨ Nueva Reserva</h4>
+                            <p>Iniciar proceso de reserva</p>
+                        </a>
+                        <a href="/habitaciones.html" class="quick-btn" style="text-decoration: none; display: block;">
+                            <h4>🛏️ Habitaciones</h4>
+                            <p>Consultar disponibilidad y pisos</p>
+                        </a>
+                        <a href="/clientes.html" class="quick-btn" style="text-decoration: none; display: block;">
+                            <h4>👥 Clientes</h4>
+                            <p>Base de datos y nuevos registros</p>
+                        </a>
+                        <a href="/reportes.html" class="quick-btn" style="text-decoration: none; display: block;">
+                            <h4>📊 Ver Reportes</h4>
+                            <p>Análisis de ocupación e ingresos</p>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <span>© 2024 Recepción. Gestión Hotelera Profesional.</span>
+                    <span>Estado del Servidor: <span class="status-ok">● Óptimo v1.0.4</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:4000/api';
+        let token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        function formatFecha() {
+            const fecha = new Date();
+            return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        async function cargarUsuario() {
+            try {
+                const response = await fetch(`${API_URL}/auth/perfil`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && data.usuario) {
+                    document.getElementById('nombreUsuario').innerHTML = 
+                        `${data.usuario.nombres || 'Usuario'} ${data.usuario.apellidos || ''}`;
+                }
+            } catch (error) {
+                console.error('Error al cargar usuario:', error);
+            }
+        }
+
+        async function cargarKPIs() {
+            try {
+                const response = await fetch(`${API_URL}/dashboard/general`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        const totalHabitaciones = 50; // Total de habitaciones del hotel
+                        const porcentajeOcupacion = ((data.habitaciones_ocupadas || 0) / totalHabitaciones) * 100;
+                        
+                        const kpis = [
+                            { title: '📊 TOTAL RESERVAS', value: formatNumber(data.total_reservas || 0), trend: '+12% este mes' },
+                            { title: '👥 TOTAL CLIENTES', value: formatNumber(data.total_clientes || 0), trend: '42 nuevos esta semana' },
+                            { title: '🛏️ HAB. OCUPADAS', value: `${data.habitaciones_ocupadas || 0}/${totalHabitaciones}`, trend: `${porcentajeOcupacion.toFixed(0)}% de ocupación` },
+                            { title: '💰 INGRESOS TOTALES', value: `$${formatNumber(data.ingresos_totales || 0)}`, trend: '+5.4% vs mes anterior' },
+                            { title: '🍽️ VENTAS SERVICIOS', value: `$${formatNumber(data.ventas_servicios || 0)}`, trend: 'Room service y Spa' }
+                        ];
+                        
+                        const kpiGrid = document.getElementById('kpiGrid');
+                        kpiGrid.innerHTML = kpis.map(kpi => `
+                            <div class="kpi-card" onclick="window.location.href='/${kpi.title.includes('RESERVAS') ? 'reservas.html' : kpi.title.includes('CLIENTES') ? 'clientes.html' : kpi.title.includes('HAB') ? 'habitaciones.html' : kpi.title.includes('INGRESOS') ? 'pagos.html' : 'servicios.html'}'">
+                                <div class="kpi-title">${kpi.title}</div>
+                                <div class="kpi-value">${kpi.value}</div>
+                                <div class="kpi-trend trend-up">${kpi.trend}</div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error al cargar KPIs:', error);
+                mostrarKPIsEjemplo();
+            }
+        }
+
+        function mostrarKPIsEjemplo() {
+            const kpis = [
+                { title: '📊 TOTAL RESERVAS', value: '1,284', trend: '+12% este mes' },
+                { title: '👥 TOTAL CLIENTES', value: '850', trend: '42 nuevos esta semana' },
+                { title: '🛏️ HAB. OCUPADAS', value: '42/50', trend: '84% de ocupación' },
+                { title: '💰 INGRESOS TOTALES', value: '$45,200', trend: '+5.4% vs mes anterior' },
+                { title: '🍽️ VENTAS SERVICIOS', value: '$8,450', trend: 'Room service y Spa' }
+            ];
+            
+            const kpiGrid = document.getElementById('kpiGrid');
+            kpiGrid.innerHTML = kpis.map(kpi => `
+                <div class="kpi-card">
+                    <div class="kpi-title">${kpi.title}</div>
+                    <div class="kpi-value">${kpi.value}</div>
+                    <div class="kpi-trend trend-up">${kpi.trend}</div>
+                </div>
+            `).join('');
+        }
+
+        async function cargarIngresosSemana() {
+            try {
+                const response = await fetch(`${API_URL}/dashboard/ingresos/semana`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.ingresos && data.ingresos.length > 0) {
+                        renderChart(data.ingresos);
+                    } else {
+                        renderSampleChart();
+                    }
+                } else {
+                    renderSampleChart();
+                }
+            } catch (error) {
+                console.error('Error al cargar ingresos:', error);
+                renderSampleChart();
+            }
+        }
+
+        function renderChart(ingresos) {
+            const valores = ingresos.map(i => i.total_ingresado || 0);
+            const maxValue = Math.max(...valores, 1);
+            
+            const chartHtml = `
+                <div class="chart-bars">
+                    ${ingresos.map(ingreso => `
+                        <div class="bar-item">
+                            <div class="bar-value">$${formatNumber(ingreso.total_ingresado || 0)}</div>
+                            <div class="bar" style="height: ${((ingreso.total_ingresado || 0) / maxValue) * 200}px"></div>
+                            <div class="bar-label">${formatFechaCorta(ingreso.fecha)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('chartContainer').innerHTML = chartHtml;
+        }
+
+        function renderSampleChart() {
+            const sampleData = [
+                { fecha: '2024-05-10', total_ingresado: 4500 },
+                { fecha: '2024-05-11', total_ingresado: 6200 },
+                { fecha: '2024-05-12', total_ingresado: 5800 },
+                { fecha: '2024-05-13', total_ingresado: 7100 },
+                { fecha: '2024-05-14', total_ingresado: 6900 },
+                { fecha: '2024-05-15', total_ingresado: 8400 },
+                { fecha: '2024-05-16', total_ingresado: 7800 }
+            ];
+            renderChart(sampleData);
+        }
+
+        function cargarActividadReciente() {
+            const actividades = [
+                { icon: '🔑', title: 'Check-in realizado', user: 'Carlos R.', room: 'Hab. 302', time: 'HACE 5 MIN' },
+                { icon: '✅', title: 'Reserva confirmada', user: 'Sistema', room: 'Hab. 105', time: 'HACE 15 MIN' },
+                { icon: '💆', title: 'Servicio de Spa cargado', user: 'María G.', room: 'Hab. 401', time: 'HACE 1 HORA' },
+                { icon: '💰', title: 'Caja diaria cerrada', user: 'Carlos R.', room: 'Recepción', time: 'AYER 22:00' }
+            ];
+            
+            const activityList = document.getElementById('activityList');
+            activityList.innerHTML = actividades.map(act => `
+                <li class="activity-item">
+                    <div class="activity-icon">${act.icon}</div>
+                    <div class="activity-details">
+                        <div class="activity-title">${act.title}</div>
+                        <div class="activity-time">${act.user} • ${act.room} • ${act.time}</div>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'k';
+            }
+            return num.toLocaleString();
+        }
+
+        function formatFechaCorta(fecha) {
+            const partes = fecha.split('-');
+            return `${partes[2]}/${partes[1]}`;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
+            window.location.href = '/login.html';
+        }
+
+        document.getElementById('fechaActual').innerText = formatFecha();
+        cargarUsuario();
+        cargarKPIs();
+        cargarIngresosSemana();
+        cargarActividadReciente();
+    </script>
+</body>
+</html>

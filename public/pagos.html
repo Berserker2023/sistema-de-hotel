@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Recepción - Pagos y Caja</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F0F2F5;
+            color: #1A2C3E;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #0F2B3D;
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 30px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 8px;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.7);
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: #1E4A6E;
+            color: white;
+            border-left: 3px solid #4A9EFF;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 24px 32px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .date-info {
+            font-size: 14px;
+            color: #5A6E7F;
+        }
+
+        .user-welcome {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-welcome strong {
+            color: #1E4A6E;
+        }
+
+        .logout-btn {
+            background: #DC2626;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .logout-btn:hover {
+            background: #B91C1C;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            color: #1A2C3E;
+        }
+
+        .page-header p {
+            color: #5A6E7F;
+            margin-top: 4px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #E5E9F0;
+            padding-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 30px;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #1E4A6E;
+            color: white;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card h3 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #1E4A6E;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #5A6E7F;
+            margin-bottom: 6px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #E5E9F0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #10B981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #059669;
+        }
+
+        .btn-secondary {
+            background: #4A9EFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-secondary:hover {
+            background: #1E4A6E;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #E5E9F0;
+        }
+
+        th {
+            background: #F8FAFC;
+            font-weight: 600;
+            color: #1E4A6E;
+            font-size: 13px;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-pagado {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-pendiente {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .info-box {
+            background: #F8FAFC;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .info-row.total {
+            font-weight: bold;
+            font-size: 18px;
+            color: #1E4A6E;
+            border-top: 2px solid #E5E9F0;
+            margin-top: 8px;
+            padding-top: 12px;
+        }
+
+        .total-card {
+            background: #F8FAFC;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .total-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1E4A6E;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            color: #5A6E7F;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #5A6E7F;
+        }
+
+        .footer {
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #E5E9F0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #5A6E7F;
+        }
+
+        .status-ok {
+            color: #10B981;
+            font-weight: 500;
+        }
+
+        .row-2cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .row-2cols { grid-template-columns: 1fr; }
+            table { display: block; overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏨 Recepción</h2>
+                <p>Hotel Premium</p>
+            </div>
+            <div class="sidebar-menu">
+                <a href="/index.html" class="menu-item">📊 Inicio</a>
+                <a href="/dashboard.html" class="menu-item">📈 Dashboard</a>
+                <a href="/reservas.html" class="menu-item">📅 Reservas</a>
+                <a href="/habitaciones.html" class="menu-item">🛏️ Habitaciones</a>
+                <a href="/clientes.html" class="menu-item">👥 Clientes</a>
+                <a href="/servicios.html" class="menu-item">🍽️ Servicios</a>
+                <a href="/pagos.html" class="menu-item active">💰 Pagos/Caja</a>
+                <a href="/reportes.html" class="menu-item">📊 Reportes</a>
+                <a href="/recepcionistas.html" class="menu-item">👔 Recepcionistas</a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="date-info" id="fechaActual"></div>
+                <div class="user-welcome">
+                    <span>Bienvenido, <strong id="nombreUsuario">Cargando...</strong></span>
+                    <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+
+            <div class="page-header">
+                <h1>💰 Pagos y Caja Diaria</h1>
+                <p>Registre pagos, consulte saldos y gestione el cierre de caja.</p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="registro">💵 Registrar Pago</button>
+                <button class="tab-btn" data-tab="caja">📊 Caja Diaria</button>
+                <button class="tab-btn" data-tab="historial">📋 Historial de Pagos</button>
+            </div>
+
+            <!-- Tab 1: Registrar Pago -->
+            <div id="tab-registro" class="tab-pane active">
+                <div class="row-2cols">
+                    <div class="card">
+                        <h3>🔍 Buscar Reserva</h3>
+                        <div class="form-group">
+                            <label>Seleccionar Reserva Activa</label>
+                            <select id="selectReserva">
+                                <option value="">Cargando reservas...</option>
+                            </select>
+                        </div>
+                        <button class="btn-secondary" onclick="buscarReserva()" style="width:100%">Consultar Reserva</button>
+                        
+                        <div id="reservaInfo" style="margin-top: 20px; display: none;">
+                            <div class="info-box">
+                                <div class="info-row"><span>🏷️ Reserva ID:</span><span id="infoId">-</span></div>
+                                <div class="info-row"><span>👤 Cliente:</span><span id="infoCliente">-</span></div>
+                                <div class="info-row"><span>🛏️ Habitación:</span><span id="infoHabitacion">-</span></div>
+                                <div class="info-row"><span>📅 Entrada:</span><span id="infoEntrada">-</span></div>
+                                <div class="info-row"><span>📅 Salida:</span><span id="infoSalida">-</span></div>
+                                <div class="info-row"><span>💰 Precio Total:</span><span id="infoPrecio">-</span></div>
+                                <div class="info-row"><span>💵 Total Pagado:</span><span id="infoPagado">-</span></div>
+                                <div class="info-row total"><span>💲 Saldo Pendiente:</span><span id="infoSaldo">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>💵 Registrar Pago</h3>
+                        <div class="form-group">
+                            <label>Monto a Pagar</label>
+                            <input type="number" id="montoPago" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Método de Pago</label>
+                            <select id="metodoPago">
+                                <option value="Efectivo">💵 Efectivo</option>
+                                <option value="Tarjeta">💳 Tarjeta</option>
+                                <option value="Transferencia">🏦 Transferencia</option>
+                                <option value="Yape/Plin">📱 Yape/Plin</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Observación (opcional)</label>
+                            <input type="text" id="observacionPago" placeholder="Nota adicional...">
+                        </div>
+                        <button class="btn-primary" onclick="registrarPago()">✓ Registrar Pago</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Caja Diaria -->
+            <div id="tab-caja" class="tab-pane">
+                <div class="card">
+                    <h3>📊 Reporte de Caja Diaria</h3>
+                    <div class="form-group">
+                        <label>Seleccionar Fecha</label>
+                        <input type="date" id="cajaFecha">
+                    </div>
+                    <button class="btn-secondary" onclick="cargarCajaDiaria()">Consultar</button>
+                    
+                    <div id="cajaResultados" style="margin-top: 20px;">
+                        <div class="empty-message">Seleccione una fecha para ver el reporte</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Historial de Pagos -->
+            <div id="tab-historial" class="tab-pane">
+                <div class="card">
+                    <h3>📋 Historial de Pagos por Reserva</h3>
+                    <div class="form-group">
+                        <label>ID de Reserva</label>
+                        <input type="number" id="historialReservaId" placeholder="Ej: 123">
+                    </div>
+                    <button class="btn-secondary" onclick="cargarHistorialPagos()">Consultar</button>
+                    
+                    <div id="historialResultados" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <span>© 2024 Recepción. Gestión Hotelera Profesional.</span>
+                <span>Estado del Servidor: <span class="status-ok">● Óptimo v1.0.4</span></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:4000/api';
+        let token = localStorage.getItem('token');
+        let reservaActual = null;
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        function formatFecha() {
+            const fecha = new Date();
+            return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        async function cargarUsuario() {
+            try {
+                const response = await fetch(`${API_URL}/auth/perfil`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.status === 401) { logout(); return; }
+                const data = await response.json();
+                if (data.success && data.usuario) {
+                    document.getElementById('nombreUsuario').innerHTML = `${data.usuario.nombres || 'Usuario'} ${data.usuario.apellidos || ''}`;
+                }
+            } catch (error) { console.error('Error:', error); }
+        }
+
+        async function cargarReservasActivas() {
+            try {
+                const response = await fetch(`${API_URL}/pagos/reservas/activas`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const reservas = await response.json();
+                    const select = document.getElementById('selectReserva');
+                    if (reservas.length === 0) {
+                        select.innerHTML = '<option value="">No hay reservas activas</option>';
+                    } else {
+                        select.innerHTML = '<option value="">Seleccione una reserva...</option>';
+                        reservas.forEach(r => {
+                            const option = document.createElement('option');
+                            option.value = r.id;
+                            option.textContent = `RES-${r.id} | ${r.cliente} | Hab. ${r.idHabitacion}`;
+                            select.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function buscarReserva() {
+            const idReserva = document.getElementById('selectReserva').value;
+            if (!idReserva) {
+                alert('Seleccione una reserva');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/pagos/reserva/${idReserva}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    reservaActual = await response.json();
+                    document.getElementById('reservaInfo').style.display = 'block';
+                    document.getElementById('infoId').innerHTML = reservaActual.id;
+                    document.getElementById('infoCliente').innerHTML = reservaActual.cliente;
+                    document.getElementById('infoHabitacion').innerHTML = reservaActual.habitacion;
+                    document.getElementById('infoEntrada').innerHTML = new Date(reservaActual.fechaEntrada).toLocaleDateString();
+                    document.getElementById('infoSalida').innerHTML = new Date(reservaActual.fechaSalida).toLocaleDateString();
+                    document.getElementById('infoPrecio').innerHTML = `$${reservaActual.precio.toFixed(2)}`;
+                    document.getElementById('infoPagado').innerHTML = `$${reservaActual.totalPagado.toFixed(2)}`;
+                    document.getElementById('infoSaldo').innerHTML = `$${reservaActual.saldoPendiente.toFixed(2)}`;
+                    
+                    // Sugerir monto máximo igual al saldo
+                    document.getElementById('montoPago').max = reservaActual.saldoPendiente;
+                } else {
+                    alert('Error al cargar la reserva');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al conectar con el servidor');
+            }
+        }
+
+        async function registrarPago() {
+            if (!reservaActual) {
+                alert('Primero seleccione y consulte una reserva');
+                return;
+            }
+
+            const monto = parseFloat(document.getElementById('montoPago').value);
+            const metodoPago = document.getElementById('metodoPago').value;
+            const observacion = document.getElementById('observacionPago').value;
+
+            // ✅ MODIFICADO: Permitir montos negativos, cero y positivos
+            if (monto === null || isNaN(monto)) {
+                alert('Ingrese un monto válido');
+                return;
+            }
+
+            // Eliminar la validación que limita el monto al saldo pendiente para permitir negativos
+            // if (monto > reservaActual.saldoPendiente) {
+            //     alert(`El monto no puede ser mayor al saldo pendiente ($${reservaActual.saldoPendiente.toFixed(2)})`);
+            //     return;
+            // }
+
+            try {
+                const response = await fetch(`${API_URL}/pagos/registrar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        idReserva: reservaActual.id,
+                        monto: monto,
+                        metodoPago: metodoPago,
+                        observacion: observacion
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ Pago registrado correctamente');
+                    document.getElementById('montoPago').value = '';
+                    document.getElementById('observacionPago').value = '';
+                    buscarReserva(); // Recargar datos de la reserva
+                } else {
+                    alert(data.message || 'Error al registrar pago');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al conectar con el servidor');
+            }
+        }
+
+        async function cargarCajaDiaria() {
+            const fecha = document.getElementById('cajaFecha').value || new Date().toISOString().split('T')[0];
+            document.getElementById('cajaFecha').value = fecha;
+
+            try {
+                const response = await fetch(`${API_URL}/pagos/caja?fecha=${fecha}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!data.detalle || data.detalle.length === 0) {
+                        document.getElementById('cajaResultados').innerHTML = '<div class="empty-message">No hay pagos registrados en esta fecha</div>';
+                    } else {
+                        let html = `
+                            <table>
+                                <thead>
+                                    <tr><th>Método de Pago</th><th>Operaciones</th><th>Total</th></tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        data.detalle.forEach(item => {
+                            html += `
+                                <tr>
+                                    <td>${item.metodoPago}</td>
+                                    <td>${item.operaciones}</td>
+                                    <td>$${item.total.toFixed(2)}</td>
+                                </tr>
+                            `;
+                        });
+                        html += `
+                                </tbody>
+                            </table>
+                            <div class="total-card">
+                                <div class="total-number">$${data.totalGeneral.toFixed(2)}</div>
+                                <p>Total General del Día</p>
+                            </div>
+                        `;
+                        document.getElementById('cajaResultados').innerHTML = html;
+                    }
+                } else {
+                    document.getElementById('cajaResultados').innerHTML = '<div class="empty-message">Error al cargar reporte</div>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('cajaResultados').innerHTML = '<div class="empty-message">Error de conexión</div>';
+            }
+        }
+
+        async function cargarHistorialPagos() {
+            const idReserva = document.getElementById('historialReservaId').value;
+            if (!idReserva) {
+                alert('Ingrese ID de reserva');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/pagos/reserva/${idReserva}/historial`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const pagos = await response.json();
+                    if (pagos.length === 0) {
+                        document.getElementById('historialResultados').innerHTML = '<div class="empty-message">No hay pagos registrados para esta reserva</div>';
+                    } else {
+                        let html = `
+                            <table>
+                                <thead>
+                                    <tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Observación</th></tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        pagos.forEach(p => {
+                            html += `
+                                <tr>
+                                    <td>${new Date(p.fecha).toLocaleString()}</td>
+                                    <td>$${p.monto.toFixed(2)}</td>
+                                    <td>${p.metodoPago}</td>
+                                    <td>${p.observacion || '-'}</td>
+                                </tr>
+                            `;
+                        });
+                        html += `</tbody></table>`;
+                        document.getElementById('historialResultados').innerHTML = html;
+                    }
+                } else {
+                    document.getElementById('historialResultados').innerHTML = '<div class="empty-message">Error al cargar historial</div>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('historialResultados').innerHTML = '<div class="empty-message">Error de conexión</div>';
+            }
+        }
+
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
+            window.location.href = '/login.html';
+        }
+
+        document.getElementById('fechaActual').innerText = formatFecha();
+        document.getElementById('cajaFecha').value = new Date().toISOString().split('T')[0];
+        cargarUsuario();
+        cargarReservasActivas();
+    </script>
+</body>
+</html>

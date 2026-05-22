@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recepción - Iniciar Sesión</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #F5F6FA;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-wrapper { width: 100%; max-width: 440px; }
+
+        .login-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            overflow: hidden;
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-top-bar { background: #2563EB; height: 6px; }
+
+        .card-body { padding: 40px 40px 32px; }
+
+        .logo {
+            display: flex; align-items: center; gap: 12px;
+            justify-content: center; margin-bottom: 28px;
+        }
+
+        .logo-icon {
+            width: 44px; height: 44px; background: #1E293B;
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; color: white; font-size: 22px;
+        }
+
+        .logo-text { font-size: 22px; font-weight: 700; color: #1E293B; letter-spacing: -0.3px; }
+
+        .welcome { text-align: center; margin-bottom: 32px; }
+        .welcome h2 { font-size: 20px; font-weight: 700; color: #1E293B; margin-bottom: 6px; }
+        .welcome p { font-size: 14px; color: #64748B; }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 7px; }
+
+        .input-wrapper { position: relative; }
+
+        .input-icon {
+            position: absolute; left: 14px; top: 50%;
+            transform: translateY(-50%); color: #9CA3AF;
+            font-size: 15px; pointer-events: none;
+        }
+
+        .form-input {
+            width: 100%; padding: 11px 14px 11px 40px;
+            font-family: 'DM Sans', sans-serif; font-size: 14px;
+            border: 1.5px solid #E2E8F0; border-radius: 10px;
+            color: #1E293B; background: #FAFAFA; outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: #2563EB;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: #fff;
+        }
+
+        .form-input::placeholder { color: #CBD5E1; }
+
+        .label-row {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 7px;
+        }
+
+        .forgot-link { font-size: 12px; color: #2563EB; text-decoration: none; font-weight: 500; }
+        .forgot-link:hover { text-decoration: underline; }
+
+        .eye-btn {
+            position: absolute; right: 12px; top: 50%;
+            transform: translateY(-50%); background: none;
+            border: none; cursor: pointer; color: #9CA3AF; font-size: 16px; padding: 0;
+        }
+
+        .btn-login {
+            width: 100%; padding: 13px;
+            background: #2563EB; color: white; border: none;
+            border-radius: 10px; font-family: 'DM Sans', sans-serif;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            transition: background 0.2s, transform 0.15s; margin-top: 4px;
+        }
+
+        .btn-login:hover { background: #1D4ED8; transform: translateY(-1px); }
+        .btn-login:active { transform: translateY(0); }
+        .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .error-box {
+            background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626;
+            padding: 10px 14px; border-radius: 8px; font-size: 13px;
+            margin-bottom: 18px; display: none;
+        }
+
+        .loading-row {
+            display: none; align-items: center; justify-content: center;
+            gap: 10px; margin-top: 14px; color: #64748B; font-size: 13px;
+        }
+        .loading-row.active { display: flex; }
+
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2.5px solid #E2E8F0; border-top-color: #2563EB;
+            border-radius: 50%; animation: spin 0.75s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .terms-text {
+            text-align: center; font-size: 12px; color: #94A3B8;
+            margin-top: 20px; line-height: 1.6;
+        }
+        .terms-text a { color: #2563EB; text-decoration: none; }
+        .terms-text a:hover { text-decoration: underline; }
+
+        .trust-badges { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
+
+        .trust-badge {
+            display: flex; align-items: center; gap: 6px;
+            background: #F8FAFC; border: 1px solid #E2E8F0;
+            border-radius: 8px; padding: 6px 12px;
+            font-size: 11px; font-weight: 600; color: #64748B;
+        }
+
+        .login-footer {
+            padding: 16px 40px 20px;
+            border-top: 1px solid #F1F5F9; text-align: center;
+        }
+
+        .login-footer p { font-size: 12px; color: #94A3B8; margin-bottom: 8px; }
+
+        .footer-links { display: flex; justify-content: center; gap: 0; }
+
+        .footer-links a {
+            font-size: 12px; color: #94A3B8; text-decoration: none; padding: 0 10px;
+        }
+
+        .footer-links a:not(:last-child) { border-right: 1px solid #E2E8F0; }
+        .footer-links a:hover { color: #2563EB; }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="card-top-bar"></div>
+            <div class="card-body">
+
+                <div class="logo">
+                    <div class="logo-icon">🏨</div>
+                    <span class="logo-text">Recepción</span>
+                </div>
+
+                <div class="welcome">
+                    <h2>Bienvenido de nuevo</h2>
+                    <p>Ingrese sus credenciales para gestionar el hotel</p>
+                </div>
+
+                <div class="error-box" id="errorMessage"></div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label">Correo Electrónico</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">✉</span>
+                            <input class="form-input" type="email" id="correo"
+                                placeholder="nombre@hotel.com" autocomplete="email" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label class="form-label" style="margin-bottom:0">Contraseña</label>
+                            <a href="#" class="forgot-link">¿Olvidó su contraseña?</a>
+                        </div>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input class="form-input" type="password" id="password"
+                                placeholder="••••••••" autocomplete="current-password">
+                            <button type="button" class="eye-btn" onclick="togglePassword()">👁</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-login" id="btnLogin">Iniciar Sesión</button>
+
+                    <div class="loading-row" id="loading">
+                        <div class="spinner"></div>
+                        <span>Verificando credenciales…</span>
+                    </div>
+                </form>
+
+                <div class="terms-text">
+                    Al iniciar sesión, usted acepta nuestros
+                    <a href="#">Términos de Servicio</a> y <a href="#">Política de Privacidad</a>.
+                </div>
+
+                <div class="trust-badges">
+                    <div class="trust-badge">🛡 SSL Seguro</div>
+                    <div class="trust-badge">✅ Verificado</div>
+                </div>
+            </div>
+
+            <div class="login-footer">
+                <p>© 2024 Recepción. Sistema de Gestión Hotelera Profesional.</p>
+                <div class="footer-links">
+                    <a href="#">Soporte Técnico</a>
+                    <a href="#">Estado del Sistema</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:4000/api';
+        const loginForm    = document.getElementById('loginForm');
+        const btnLogin     = document.getElementById('btnLogin');
+        const loading      = document.getElementById('loading');
+        const errorMessage = document.getElementById('errorMessage');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const correo   = document.getElementById('correo').value.trim();
+            const password = document.getElementById('password').value;
+            if (!correo) { showError('Por favor, ingrese su correo electrónico'); return; }
+            hideError(); showLoading();
+            try {
+                const requestBody = { correo };
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('usuario', JSON.stringify(data.usuario));
+                    window.location.href = '/index.html';
+                } else {
+                    showError(data.message || 'Credenciales inválidas');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error al conectar con el servidor. ¿Está el backend corriendo?');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        function togglePassword() {
+            const input = document.getElementById('password');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.style.display = 'block';
+            setTimeout(() => errorMessage.style.display = 'none', 5000);
+        }
+        function hideError()   { errorMessage.style.display = 'none'; }
+        function showLoading() { loading.classList.add('active'); btnLogin.disabled = true; }
+        function hideLoading() { loading.classList.remove('active'); btnLogin.disabled = false; }
+    </script>
+</body>
+</html>
