@@ -5,8 +5,14 @@ const pool = require("../config/db");
 ========================= */
 exports.getAll = async (req, res) => {
   try {
+    // Comprobar si la columna `precio` existe en la tabla Servicio
+    const [cols] = await pool.query("SHOW COLUMNS FROM Servicio LIKE 'precio'");
+    const tienePrecio = cols.length > 0;
+
+    const selectPrecio = tienePrecio ? 'IFNULL(precio,0) as precio' : '0 as precio';
+
     const [rows] = await pool.query(`
-      SELECT id, tipo as nombre, descripcion, estado, 0 as precio
+      SELECT id, tipo as nombre, descripcion, estado, ${selectPrecio}
       FROM Servicio
       ORDER BY descripcion
     `);
@@ -25,8 +31,12 @@ exports.getById = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const [cols] = await pool.query("SHOW COLUMNS FROM Servicio LIKE 'precio'");
+    const tienePrecio = cols.length > 0;
+    const selectPrecio = tienePrecio ? 'IFNULL(precio,0) as precio' : '0 as precio';
+
     const [rows] = await pool.query(`
-      SELECT id, tipo as nombre, descripcion, estado, 0 as precio
+      SELECT id, tipo as nombre, descripcion, estado, ${selectPrecio}
       FROM Servicio
       WHERE id = ?
     `, [id]);
@@ -125,7 +135,7 @@ exports.consumo = async (req, res) => {
 
     // Verificar que el servicio existe
     const [servicio] = await pool.query(`
-      SELECT id
+      SELECT *
       FROM Servicio
       WHERE id = ?
     `, [idServicio]);
@@ -136,9 +146,18 @@ exports.consumo = async (req, res) => {
       });
     }
 
-    // Precio por defecto (como no hay columna precio)
-    const precio = 0;
-    const subtotal = precio * cantidad;
+    // Intentar obtener precio desde la tabla Servicio si existe la columna
+    const [cols] = await pool.query("SHOW COLUMNS FROM Servicio LIKE 'precio'");
+    const tienePrecio = cols.length > 0;
+
+    let precio = 0;
+    if (tienePrecio) {
+      precio = parseFloat(servicio[0].precio) || 0;
+    } else if (req.body.precio) {
+      precio = parseFloat(req.body.precio) || 0;
+    }
+
+    const subtotal = precio * (cantidad || 0);
 
     await pool.query(`
       INSERT INTO DetalleServicio(
