@@ -35,6 +35,27 @@ exports.getDisponibles = async (req, res) => {
   }
 };
 
+/* POR ESTADO */
+exports.getByEstado = async (req, res) => {
+  try {
+    const { estado } = req.params;
+    const estadoUpper = estado.toUpperCase();
+
+    const [rows] = await pool.query(`
+      SELECT h.*, s.nombre AS sucursal
+      FROM Habitacion h
+      INNER JOIN Sucursal s
+        ON h.idSucursal = s.id
+      WHERE h.estado = ?
+      ORDER BY h.id
+    `, [estadoUpper]);
+
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 /* BUSCAR POR ID */
 exports.getById = async (req, res) => {
   try {

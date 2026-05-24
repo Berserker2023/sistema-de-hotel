@@ -61,10 +61,27 @@ exports.create = async (req, res) => {
   try {
     const { nombre, precio, descripcion } = req.body;
 
-    const [result] = await pool.query(`
-      INSERT INTO Servicio(tipo, descripcion, estado)
-      VALUES(?, ?, 'ACTIVO')
-    `, [nombre, descripcion || nombre]);
+    const [cols] = await pool.query("SHOW COLUMNS FROM Servicio LIKE 'precio'");
+    const tienePrecio = cols.length > 0;
+    let precioServicio = tienePrecio ? parseFloat(precio) || 0 : undefined;
+    
+    // Asegurar que el precio sea positivo
+    if (tienePrecio) {
+      precioServicio = Math.max(0, Math.abs(precioServicio));
+    }
+
+    let result;
+    if (tienePrecio) {
+      [result] = await pool.query(`
+        INSERT INTO Servicio(tipo, descripcion, estado, precio)
+        VALUES(?, ?, 'ACTIVO', ?)
+      `, [nombre, descripcion || nombre, precioServicio]);
+    } else {
+      [result] = await pool.query(`
+        INSERT INTO Servicio(tipo, descripcion, estado)
+        VALUES(?, ?, 'ACTIVO')
+      `, [nombre, descripcion || nombre]);
+    }
 
     res.status(201).json({
       message: "Servicio creado",
@@ -82,15 +99,35 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, estado, descripcion } = req.body;
+    const { nombre, estado, descripcion, precio } = req.body;
 
-    await pool.query(`
-      UPDATE Servicio
-      SET tipo=?,
-          descripcion=?,
-          estado=?
-      WHERE id=?
-    `, [nombre, descripcion || nombre, estado, id]);
+    const [cols] = await pool.query("SHOW COLUMNS FROM Servicio LIKE 'precio'");
+    const tienePrecio = cols.length > 0;
+    let precioServicio = tienePrecio ? parseFloat(precio) || 0 : undefined;
+    
+    // Asegurar que el precio sea positivo
+    if (tienePrecio) {
+      precioServicio = Math.max(0, Math.abs(precioServicio));
+    }
+
+    if (tienePrecio) {
+      await pool.query(`
+        UPDATE Servicio
+        SET tipo=?,
+            descripcion=?,
+            estado=?,
+            precio=?
+        WHERE id=?
+      `, [nombre, descripcion || nombre, estado, precioServicio, id]);
+    } else {
+      await pool.query(`
+        UPDATE Servicio
+        SET tipo=?,
+            descripcion=?,
+            estado=?
+        WHERE id=?
+      `, [nombre, descripcion || nombre, estado, id]);
+    }
 
     res.json({
       message: "Servicio actualizado"
@@ -159,22 +196,59 @@ exports.consumo = async (req, res) => {
 
     const subtotal = precio * (cantidad || 0);
 
-    await pool.query(`
-      INSERT INTO DetalleServicio(
+    // Intentar insertar en DetalleServicio
+    let insertado = false;
+    let ultimoError = null;
+
+    // Intento 1: con 'subtotal' minúscula
+    try {
+      await pool.query(`
+        INSERT INTO DetalleServicio(
+          idReserva,
+          idServicio,
+          cantidad,
+          precio,
+          subtotal
+        )
+        VALUES(?,?,?,?,?)
+      `, [
         idReserva,
         idServicio,
         cantidad,
         precio,
-        subTotal
-      )
-      VALUES(?,?,?,?,?)
-    `, [
-      idReserva,
-      idServicio,
-      cantidad,
-      precio,
-      subtotal
-    ]);
+        subtotal
+      ]);
+      insertado = true;
+    } catch (err1) {
+      ultimoError = err1;
+      // Intento 2: con 'subTotal' camelCase
+      try {
+        await pool.query(`
+          INSERT INTO DetalleServicio(
+            idReserva,
+            idServicio,
+            cantidad,
+            precio,
+            subTotal
+          )
+          VALUES(?,?,?,?,?)
+        `, [
+          idReserva,
+          idServicio,
+          cantidad,
+          precio,
+          subtotal
+        ]);
+        insertado = true;
+      } catch (err2) {
+        ultimoError = err2;
+      }
+    }
+
+    if (!insertado) {
+      console.error("Error al insertar en DetalleServicio:", ultimoError);
+      throw new Error(`Error al registrar consumo: ${ultimoError.message}`);
+    }
 
     res.status(201).json({
       message: "Consumo registrado"
@@ -182,7 +256,10 @@ exports.consumo = async (req, res) => {
 
   } catch (error) {
     console.error("Error en consumo:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: error.message,
+      message: "Error al registrar consumo"
+    });
   }
 };
 
@@ -199,7 +276,7 @@ exports.getByReserva = async (req, res) => {
         s.tipo as descripcion,
         ds.cantidad,
         ds.precio as precioUnitario,
-        ds.subTotal as subtotal,
+        ds.subtotal as subtotal,
         NOW() as fecha
       FROM DetalleServicio ds
       INNER JOIN Servicio s
@@ -224,7 +301,7 @@ exports.totalReserva = async (req, res) => {
     const { id } = req.params;
 
     const [rows] = await pool.query(`
-      SELECT IFNULL(SUM(subTotal),0) AS total
+      SELECT IFNULL(SUM(subtotal),0) AS total
       FROM DetalleServicio
       WHERE idReserva = ?
     `, [id]);
