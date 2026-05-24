@@ -1,5 +1,6 @@
 //GET    /api/habitaciones
 //GET    /api/habitaciones/disponibles
+//GET    /api/habitaciones/estado/:estado
 //GET    /api/habitaciones/:id
 //POST   /api/habitaciones
 //PUT    /api/habitaciones/:id
@@ -13,6 +14,7 @@ const controller = require("../controllers/habitacion.controller");
 
 router.get("/", controller.getAll);
 router.get("/disponibles", controller.getDisponibles);
+router.get("/estado/:estado", controller.getByEstado);
 router.get("/:id", controller.getById);
 router.post("/", controller.create);
 router.put("/:id", controller.update);

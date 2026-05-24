@@ -17,28 +17,32 @@ const router = express.Router();
 // Importa el controlador de servicio (contiene la lógica de cada endpoint)
 const controller = require("../controllers/servicio.controller");
 
-// Ruta GET "/" → obtiene todas las personas
-router.get("/", controller.getAll);
+// Importa middleware de autenticación
+const { verificarToken } = require("../middlewares/auth.middleware");
 
-// Ruta GET "/:id" → obtiene un servicio por su ID
-router.get("/:id", controller.getById);
+// Ruta GET "/" → obtiene todas las personas
+router.get("/", verificarToken, controller.getAll);
 
 // Ruta POST "/" → crea un nuevo servicio
-router.post("/", controller.create);
+router.post("/", verificarToken, controller.create);
+
+// Ruta POST "/consumo" → registra un consumo de servicio (DEBE IR ANTES DE /:id)
+router.post("/consumo", verificarToken, controller.consumo);
+
+// Rutas con parámetro ID (estas van al final para no conflictuar)
+// Ruta GET "/:id" → obtiene un servicio por su ID
+router.get("/:id", verificarToken, controller.getById);
 
 // Ruta PUT "/:id" → actualiza un servicio existente por su ID
-router.put("/:id", controller.update);
+router.put("/:id", verificarToken, controller.update);
 
 // Ruta DELETE "/:id" → elimina un servicio por su ID
-router.delete("/:id", controller.remove);
-
-// Ruta POST "/consumo" → registra un consumo de servicio 
-router.post("/consumo", controller.consumo);
+router.delete("/:id", verificarToken, controller.remove);
 
 //ruta GET "/:id/servicios" → obtener los servicios por reserva
-router.get("/:id/servicios", controller.getByReserva);
+router.get("/:id/servicios", verificarToken, controller.getByReserva);
 
 //ruta get ":id/total-servicios" → Obtiene el total ($) servicios por reserva
-router.get("/:id/total-servicios", controller.totalReserva);
+router.get("/:id/total-servicios", verificarToken, controller.totalReserva);
 // Exporta el router para usarlo en otras partes de la aplicación
 module.exports = router;

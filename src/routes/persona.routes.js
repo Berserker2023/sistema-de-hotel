@@ -6,6 +6,10 @@ const router = express.Router();
 
 // Importa el controlador de persona (contiene la lógica de cada endpoint)
 const controller = require("../controllers/persona.controller");
+const { verificarToken } = require("../middlewares/auth.middleware");
+
+// Aplicar middleware de autenticación a todas las rutas
+router.use(verificarToken);
 
 // Ruta GET "/" → obtiene todas las personas
 router.get("/", controller.getAll);
