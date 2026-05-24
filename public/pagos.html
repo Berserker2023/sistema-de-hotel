@@ -397,12 +397,10 @@
                     <div class="card">
                         <h3>🔍 Buscar Reserva</h3>
                         <div class="form-group">
-                            <label>Seleccionar Reserva Activa</label>
-                            <select id="selectReserva">
-                                <option value="">Cargando reservas...</option>
-                            </select>
+                            <label>Buscar por Reserva, DNI o Habitación</label>
+                            <input type="text" id="searchReserva" placeholder="Escribe para buscar..." onkeyup="filtrarReservas()" autocomplete="off">
+                            <div id="resultadosBusqueda" style="margin-top: 10px; max-height: 250px; overflow-y: auto; border: 1px solid #E5E9F0; border-radius: 8px; display: none;"></div>
                         </div>
-                        <button class="btn-secondary" onclick="buscarReserva()" style="width:100%">Consultar Reserva</button>
                         
                         <div id="reservaInfo" style="margin-top: 20px; display: none;">
                             <div class="info-box">
@@ -414,6 +412,12 @@
                                 <div class="info-row"><span>💰 Precio Total:</span><span id="infoPrecio">-</span></div>
                                 <div class="info-row"><span>💵 Total Pagado:</span><span id="infoPagado">-</span></div>
                                 <div class="info-row total"><span>💲 Saldo Pendiente:</span><span id="infoSaldo">-</span></div>
+                            </div>
+                            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E9F0;">
+                                <h4 style="margin-bottom: 12px;">🍽️ Servicios Consumidos</h4>
+                                <div id="serviciosConsumidos" style="max-height: 200px; overflow-y: auto;">
+                                    <div style="text-align: center; color: #5A6E7F; font-size: 13px;">Cargando servicios...</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -506,33 +510,85 @@
             } catch (error) { console.error('Error:', error); }
         }
 
+        function normalizarTexto(valor) {
+            if (valor === undefined || valor === null) return '';
+            const texto = String(valor).trim();
+            if (!texto || texto.toLowerCase() === 'undefined' || texto.toLowerCase() === 'null') return '';
+            return texto;
+        }
+
+        let reservasCache = [];
+
         async function cargarReservasActivas() {
             try {
                 const response = await fetch(`${API_URL}/pagos/reservas/activas`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
-                    const reservas = await response.json();
-                    const select = document.getElementById('selectReserva');
-                    if (reservas.length === 0) {
-                        select.innerHTML = '<option value="">No hay reservas activas</option>';
-                    } else {
-                        select.innerHTML = '<option value="">Seleccione una reserva...</option>';
-                        reservas.forEach(r => {
-                            const option = document.createElement('option');
-                            option.value = r.id;
-                            option.textContent = `RES-${r.id} | ${r.cliente} | Hab. ${r.idHabitacion}`;
-                            select.appendChild(option);
-                        });
-                    }
+                    reservasCache = await response.json();
                 }
             } catch (error) {
                 console.error('Error:', error);
             }
         }
 
-        async function buscarReserva() {
-            const idReserva = document.getElementById('selectReserva').value;
+        async function filtrarReservas() {
+            const searchTerm = document.getElementById('searchReserva').value.trim();
+            const resultadosDiv = document.getElementById('resultadosBusqueda');
+
+            if (!searchTerm) {
+                resultadosDiv.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/reservas/buscar?query=${encodeURIComponent(searchTerm)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const resultados = await response.json();
+                    
+                    if (resultados.length === 0) {
+                        resultadosDiv.innerHTML = '<div style="padding:12px; text-align:center; color:#5A6E7F; font-size:13px;">No se encontraron resultados</div>';
+                        resultadosDiv.style.display = 'block';
+                        return;
+                    }
+
+                    let html = '<div style="background:white;">';
+                    resultados.forEach(r => {
+                        const reservaId = r.id || '—';
+                        const cliente = r.cliente || r.docIdCliente || 'Cliente';
+                        const habitacion = r.idHabitacion || '—';
+                        html += `
+                            <div onclick="seleccionarReserva(${r.id})" style="padding:10px; border-bottom:1px solid #E5E9F0; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='#F0F2F5'" onmouseout="this.style.background='white'">
+                                <div style="font-weight:600; color:#1E4A6E;">RES-${reservaId}</div>
+                                <div style="font-size:12px; color:#5A6E7F;">👤 ${cliente}</div>
+                                <div style="font-size:12px; color:#5A6E7F;">🛏️ Habitación ${habitacion}</div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    resultadosDiv.innerHTML = html;
+                    resultadosDiv.style.display = 'block';
+                } else {
+                    resultadosDiv.innerHTML = '<div style="padding:12px; text-align:center; color:#DC2626; font-size:13px;">Error al buscar</div>';
+                    resultadosDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultadosDiv.innerHTML = '<div style="padding:12px; text-align:center; color:#DC2626; font-size:13px;">Error de conexión</div>';
+                resultadosDiv.style.display = 'block';
+            }
+        }
+
+        async function seleccionarReserva(idReserva) {
+            document.getElementById('searchReserva').value = '';
+            document.getElementById('resultadosBusqueda').style.display = 'none';
+            buscarReserva(idReserva);
+        }
+
+        async function buscarReserva(idReserva) {
             if (!idReserva) {
                 alert('Seleccione una reserva');
                 return;
@@ -554,7 +610,11 @@
                     document.getElementById('infoPagado').innerHTML = `$${reservaActual.totalPagado.toFixed(2)}`;
                     document.getElementById('infoSaldo').innerHTML = `$${reservaActual.saldoPendiente.toFixed(2)}`;
                     
-                    // Sugerir monto máximo igual al saldo
+                    // Cargar servicios consumidos
+                    await cargarServiciosReserva(idReserva);
+                    
+                    // Pre-llenar monto a pagar con el saldo pendiente
+                    document.getElementById('montoPago').value = reservaActual.saldoPendiente.toFixed(2);
                     document.getElementById('montoPago').max = reservaActual.saldoPendiente;
                 } else {
                     alert('Error al cargar la reserva');
@@ -562,6 +622,47 @@
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error al conectar con el servidor');
+            }
+        }
+
+        async function cargarServiciosReserva(idReserva) {
+            try {
+                const response = await fetch(`${API_URL}/servicios/${idReserva}/servicios`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const servicios = await response.json();
+                    const contenedor = document.getElementById('serviciosConsumidos');
+                    
+                    if (!servicios || servicios.length === 0) {
+                        contenedor.innerHTML = '<div style="text-align: center; color: #5A6E7F; font-size: 13px;">No hay servicios consumidos</div>';
+                        return;
+                    }
+
+                    let html = '<table style="width:100%; font-size:12px;">';
+                    html += '<thead><tr style="border-bottom:1px solid #E5E9F0;"><th style="text-align:left;padding:6px;">Servicio</th><th style="text-align:center;padding:6px;">Cant.</th><th style="text-align:right;padding:6px;">Unit.</th><th style="text-align:right;padding:6px;">Subtotal</th></tr></thead>';
+                    html += '<tbody>';
+                    
+                    let totalServicios = 0;
+                    servicios.forEach(s => {
+                        const cantidad = s.cantidad || 1;
+                        const precioUnitario = parseFloat(s.precioUnit || s.precioUnitario || 0);
+                        const subtotal = parseFloat(s.subtotal || 0);
+                        totalServicios += subtotal;
+                        
+                        html += `<tr style="border-bottom:1px solid #F0F2F5;"><td style="padding:6px;">${s.descripcion || s.nombre || 'Servicio'}</td><td style="text-align:center;padding:6px;">${cantidad}</td><td style="text-align:right;padding:6px;">$${precioUnitario.toFixed(2)}</td><td style="text-align:right;padding:6px;">$${subtotal.toFixed(2)}</td></tr>`;
+                    });
+                    
+                    html += `</tbody></table>`;
+                    html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid #E5E9F0; text-align:right; font-weight:600;">Total Servicios: <span style="color:#10B981;">$${totalServicios.toFixed(2)}</span></div>`;
+                    
+                    contenedor.innerHTML = html;
+                } else {
+                    document.getElementById('serviciosConsumidos').innerHTML = '<div style="color:#DC2626; font-size:12px;">Error al cargar servicios</div>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('serviciosConsumidos').innerHTML = '<div style="color:#DC2626; font-size:12px;">Error de conexión</div>';
             }
         }
 
@@ -575,17 +676,15 @@
             const metodoPago = document.getElementById('metodoPago').value;
             const observacion = document.getElementById('observacionPago').value;
 
-            // ✅ MODIFICADO: Permitir montos negativos, cero y positivos
-            if (monto === null || isNaN(monto)) {
+            if (!monto || monto <= 0) {
                 alert('Ingrese un monto válido');
                 return;
             }
 
-            // Eliminar la validación que limita el monto al saldo pendiente para permitir negativos
-            // if (monto > reservaActual.saldoPendiente) {
-            //     alert(`El monto no puede ser mayor al saldo pendiente ($${reservaActual.saldoPendiente.toFixed(2)})`);
-            //     return;
-            // }
+            if (monto > reservaActual.saldoPendiente) {
+                alert(`El monto no puede ser mayor al saldo pendiente ($${reservaActual.saldoPendiente.toFixed(2)})`);
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_URL}/pagos/registrar`, {
@@ -596,9 +695,9 @@
                     },
                     body: JSON.stringify({
                         idReserva: reservaActual.id,
-                        monto: monto,
-                        metodoPago: metodoPago,
-                        observacion: observacion
+                        monto,
+                        metodoPago,
+                        observacion
                     })
                 });
 

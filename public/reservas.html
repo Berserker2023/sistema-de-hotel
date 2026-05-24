@@ -279,6 +279,7 @@
 
         .badge-CONFIRMADA { background: #FEF3C7; color: #92400E; }
         .badge-CHECKIN { background: #D1FAE5; color: #065F46; }
+        .badge-ACTIVA { background: #DBEAFE; color: #1D4ED8; }
         .badge-FINALIZADA { background: #E0E7FF; color: #3730A3; }
         .badge-CANCELADA { background: #FEE2E2; color: #991B1B; }
 
@@ -493,6 +494,7 @@
             <div class="filters-bar">
                 <div class="filter-group">
                     <button class="filter-btn active" data-filter="all">Todas</button>
+                    <button class="filter-btn" data-filter="ACTIVAS">Activas</button>
                     <button class="filter-btn" data-filter="CONFIRMADA">Confirmadas</button>
                     <button class="filter-btn" data-filter="CHECKIN">Check-in</button>
                     <button class="filter-btn" data-filter="FINALIZADA">Finalizadas</button>
@@ -583,6 +585,7 @@
         let paginaActual = 1;
         let itemsPorPagina = 8;
         let filtroActual = 'all';
+        let saldosCargados = false;
 
         if (!token) {
             window.location.href = '/login.html';
@@ -613,6 +616,7 @@
                 });
                 if (response.ok) {
                     reservas = await response.json();
+                    await cargarSaldosPendientes();
                     aplicarFiltro();
                     cargarEstadisticas();
                     cargarPanelesInformativos();
@@ -623,13 +627,52 @@
             }
         }
 
-        function aplicarFiltro() {
-            let reservasFiltradas = [...reservas];
-            
-            if (filtroActual !== 'all') {
-                reservasFiltradas = reservasFiltradas.filter(r => r.estado === filtroActual);
+        async function cargarSaldosPendientes() {
+            if (!reservas || reservas.length === 0) {
+                saldosCargados = true;
+                return;
             }
-            
+
+            await Promise.all(reservas.map(async (reserva) => {
+                try {
+                    const response = await fetch(`${API_URL}/pagos/reserva/${reserva.id}/saldo`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        reserva.saldoPendiente = data.saldoPendiente || 0;
+                    } else {
+                        reserva.saldoPendiente = 0;
+                    }
+                } catch (error) {
+                    reserva.saldoPendiente = 0;
+                }
+            }));
+
+            saldosCargados = true;
+        }
+
+        function obtenerReservasFiltradas() {
+            if (filtroActual === 'all') {
+                return [...reservas];
+            }
+
+            if (filtroActual === 'ACTIVAS') {
+                return reservas.filter(r => r.saldoPendiente != null && r.saldoPendiente > 0);
+            }
+
+            if (filtroActual === 'CANCELADA') {
+                return reservas.filter(r =>
+                    r.estado === 'CANCELADA' ||
+                    (r.saldoPendiente != null && r.saldoPendiente === 0)
+                );
+            }
+
+            return reservas.filter(r => r.estado === filtroActual);
+        }
+
+        function aplicarFiltro() {
+            const reservasFiltradas = obtenerReservasFiltradas();
             renderTabla(reservasFiltradas);
         }
 
@@ -646,15 +689,29 @@
             const reservasPagina = reservasData.slice(start, end);
             const totalPaginas = Math.ceil(reservasData.length / itemsPorPagina);
 
-            const getBadgeClass = (estado) => `badge-${estado || 'CONFIRMADA'}`;
-            const getEstadoTexto = (estado) => {
+            const getBadgeClass = (reserva) => {
+                if (reserva.saldoPendiente != null && reserva.saldoPendiente > 0) {
+                    return 'badge-ACTIVA';
+                }
+                if (reserva.estado === 'CANCELADA' || (reserva.saldoPendiente != null && reserva.saldoPendiente === 0)) {
+                    return 'badge-CANCELADA';
+                }
+                return `badge-${reserva.estado || 'CONFIRMADA'}`;
+            };
+            const getEstadoTexto = (reserva) => {
+                if (reserva.saldoPendiente != null && reserva.saldoPendiente > 0) {
+                    return 'Activa';
+                }
+                if (reserva.estado === 'CANCELADA' || (reserva.saldoPendiente != null && reserva.saldoPendiente === 0)) {
+                    return 'Cancelada';
+                }
                 const estados = {
                     'CONFIRMADA': 'Confirmada',
                     'CHECKIN': 'Check-in',
                     'FINALIZADA': 'Finalizada',
                     'CANCELADA': 'Cancelada'
                 };
-                return estados[estado] || estado;
+                return estados[reserva.estado] || reserva.estado || 'Confirmada';
             };
 
             const formatDate = (date) => {
@@ -681,7 +738,7 @@
                                 <td>${r.cliente || r.docIdCliente}<br><small style="color:#888">${r.docIdCliente || ''}</small></td>
                                 <td>${r.idHabitacion} ${r.tipoHabitacion ? `(${r.tipoHabitacion})` : ''}</td>
                                 <td>${formatDate(r.fechaEntrada)} → ${formatDate(r.fechaSalida)}</td>
-                                <td><span class="badge ${getBadgeClass(r.estado)}">${getEstadoTexto(r.estado)}</span></td>
+                                <td><span class="badge ${getBadgeClass(r)}">${getEstadoTexto(r)}</span></td>
                                 <td>
                                     ${r.estado === 'CONFIRMADA' ? `<button class="action-btn btn-checkin" onclick="realizarCheckin(${r.id})">✅ Check-in</button>` : ''}
                                     ${r.estado === 'CHECKIN' ? `<button class="action-btn btn-checkout" onclick="realizarCheckout(${r.id})">🚪 Check-out</button>` : ''}
@@ -713,7 +770,7 @@
         }
 
         function paginaSiguiente() {
-            const reservasFiltradas = filtroActual === 'all' ? reservas : reservas.filter(r => r.estado === filtroActual);
+            const reservasFiltradas = obtenerReservasFiltradas();
             const totalPaginas = Math.ceil(reservasFiltradas.length / itemsPorPagina);
             if (paginaActual < totalPaginas) {
                 paginaActual++;
@@ -770,22 +827,45 @@
             document.getElementById('checkoutsPendientes').innerText = checkouts.toString().padStart(2, '0');
         }
 
-        function buscarReserva() {
-            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+        async function buscarReserva() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            
+            paginaActual = 1;
             if (!searchTerm) {
                 aplicarFiltro();
                 return;
             }
 
-            const reservasFiltradas = reservas.filter(r => 
-                r.id.toString().includes(searchTerm) ||
-                (r.cliente && r.cliente.toLowerCase().includes(searchTerm)) ||
-                (r.docIdCliente && r.docIdCliente.toLowerCase().includes(searchTerm)) ||
-                (r.idHabitacion && r.idHabitacion.toLowerCase().includes(searchTerm))
-            );
-            
-            paginaActual = 1;
-            renderTabla(reservasFiltradas);
+            try {
+                const response = await fetch(`${API_URL}/reservas/buscar?query=${encodeURIComponent(searchTerm)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const resultados = await response.json();
+                    await Promise.all(resultados.map(async (reserva) => {
+                        try {
+                            const respSaldo = await fetch(`${API_URL}/pagos/reserva/${reserva.id}/saldo`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (respSaldo.ok) {
+                                const data = await respSaldo.json();
+                                reserva.saldoPendiente = data.saldoPendiente || 0;
+                            } else {
+                                reserva.saldoPendiente = 0;
+                            }
+                        } catch (error) {
+                            reserva.saldoPendiente = 0;
+                        }
+                    }));
+                    renderTabla(resultados);
+                } else {
+                    renderTabla([]);
+                }
+            } catch (error) {
+                console.error('Error al buscar:', error);
+                renderTabla([]);
+            }
         }
 
         function abrirModalNueva() {
@@ -960,12 +1040,28 @@
 
         async function actualizarReserva() {
             const id = document.getElementById('editId').value;
+            
+            // Obtener idEmpleado del usuario logueado
+            let idEmpleado = 1;
+            try {
+                const perfilRes = await fetch(`${API_URL}/auth/perfil`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (perfilRes.ok) {
+                    const perfil = await perfilRes.json();
+                    if (perfil.usuario && perfil.usuario.id) {
+                        idEmpleado = perfil.usuario.id;
+                    }
+                }
+            } catch (e) {}
+
             const body = {
                 docIdCliente: document.getElementById('editDocCliente').value.trim(),
                 idHabitacion: document.getElementById('editIdHabitacion').value.trim(),
                 fechaEntrada: document.getElementById('editFechaEntrada').value,
                 fechaSalida: document.getElementById('editFechaSalida').value,
-                precio: parseFloat(document.getElementById('editPrecio').value)
+                precio: parseFloat(document.getElementById('editPrecio').value),
+                idEmpleado: idEmpleado
             };
 
             try {
@@ -979,14 +1075,16 @@
                 });
 
                 if (response.ok) {
-                    alert('Reserva actualizada');
+                    alert('Reserva actualizada correctamente');
                     cerrarModalEditar();
                     cargarReservas();
                 } else {
-                    alert('Error al actualizar');
+                    const error = await response.json();
+                    alert('Error al actualizar: ' + (error.message || 'Intente nuevamente'));
                 }
             } catch (error) {
                 console.error('Error:', error);
+                alert('Error al conectar con el servidor');
             }
         }
 

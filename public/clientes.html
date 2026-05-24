@@ -420,8 +420,7 @@
 
             <div class="filters-bar">
                 <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Buscar por nombre, apellido o número de documento...">
-                    <button onclick="buscarCliente()">Buscar</button>
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre, apellido o número de documento..." oninput="buscarClienteEnTiempoReal()">
                 </div>
                 <button class="btn-primary" onclick="abrirModalNuevo()">+ Nuevo Cliente</button>
             </div>
@@ -507,6 +506,7 @@
         const API_URL = 'http://localhost:4000/api';
         let token = localStorage.getItem('token');
         let clientes = [];
+        let clientesTodos = [];
         let paginaActual = 1;
         let itemsPorPagina = 10;
 
@@ -538,7 +538,9 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
-                    clientes = await response.json();
+                    clientesTodos = await response.json();
+                    clientes = clientesTodos;
+                    paginaActual = 1;
                     renderTabla();
                     cargarEstadisticas();
                 }
@@ -549,11 +551,11 @@
         }
 
         function cargarEstadisticas() {
-            const total = clientes.length;
+            const total = clientesTodos.length;
             const hoy = new Date();
             const mesActual = hoy.getMonth();
             const anioActual = hoy.getFullYear();
-            const nuevosEsteMes = clientes.filter(c => {
+            const nuevosEsteMes = clientesTodos.filter(c => {
                 const fecha = new Date(c.fechaNac);
                 return fecha.getMonth() === mesActual && fecha.getFullYear() === anioActual;
             }).length;
@@ -561,7 +563,7 @@
             // Simular VIP (clientes con más de 2 reservas - necesitarías endpoint)
             const vip = Math.floor(total * 0.15);
             
-            const ultimoRegistro = clientes[clientes.length - 1];
+            const ultimoRegistro = clientesTodos[clientesTodos.length - 1];
             const ultimoNombre = ultimoRegistro ? `${ultimoRegistro.nombres} ${ultimoRegistro.apellidos}` : 'Ninguno';
             
             document.getElementById('statsGrid').innerHTML = `
@@ -638,6 +640,35 @@
                 paginaActual++;
                 renderTabla();
             }
+        }
+
+        function buscarClienteEnTiempoReal() {
+            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                // Si el input está vacío, mostrar todos los clientes
+                clientes = clientesTodos;
+                paginaActual = 1;
+                renderTabla();
+                return;
+            }
+
+            // Filtrar clientes por nombres, apellidos, docId o correo
+            clientes = clientesTodos.filter(c => {
+                const docId = (c.docId || '').toLowerCase();
+                const nombres = (c.nombres || '').toLowerCase();
+                const apellidos = (c.apellidos || '').toLowerCase();
+                const correo = (c.correo || '').toLowerCase();
+                
+                // Buscar si el término coincide con alguno de estos campos
+                return docId.includes(searchTerm) || 
+                       nombres.includes(searchTerm) || 
+                       apellidos.includes(searchTerm) ||
+                       correo.includes(searchTerm);
+            });
+
+            paginaActual = 1;
+            renderTabla();
         }
 
         async function buscarCliente() {

@@ -447,9 +447,8 @@
                     
                     <div class="form-group">
                         <label>Reserva Activa (Huésped)</label>
-                        <select id="selectReserva">
-                            <option value="">Seleccione una reserva...</option>
-                        </select>
+                        <input type="text" id="selectReserva" placeholder="Buscar por reserva, nombre o habitación..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" oninput="filtrarReservas()">
+                        <div id="reservasDropdown" style="display: none; position: absolute; background: white; border: 1px solid #ccc; border-radius: 4px; max-height: 200px; overflow-y: auto; width: 100%; z-index: 1000; margin-top: 4px;"></div>
                     </div>
 
                     <div class="form-group">
@@ -463,7 +462,7 @@
                         <label>Cantidad</label>
                         <div class="quantity-control">
                             <button onclick="cambiarCantidad(-1)">-</button>
-                            <input type="number" id="cantidadServicio" value="1" min="1">
+                            <input type="number" id="cantidadServicio" value="1" min="1" oninput="validarCantidad()" onchange="validarCantidad()">
                             <button onclick="cambiarCantidad(1)">+</button>
                         </div>
                     </div>
@@ -495,9 +494,35 @@
                 </div>
             </div>
 
+            <div class="card">
+                <h3>🔧 Gestión de Servicios</h3>
+                <div class="info-text">Agregue, edite o elimine servicios disponibles para el consumo.</div>
+                <button class="btn-add" onclick="abrirModalServicio()">+ Nuevo Servicio</button>
+                <div class="servicios-list" id="serviciosList">
+                    <div class="empty-message">Cargando servicios...</div>
+                </div>
+            </div>
+
             <div class="footer">
                 <span>© 2024 Recepción. Gestión Hotelera Profesional.</span>
                 <span>Estado del Servidor: <span class="status-ok">● Óptimo v1.0.4</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="servicioModal">
+        <div class="modal-content">
+            <h3 id="modalTitulo">Nuevo Servicio</h3>
+            <input type="text" id="servicioNombre" placeholder="Nombre del servicio" />
+            <input type="text" id="servicioDescripcion" placeholder="Descripción del servicio" />
+            <input type="number" step="0.01" min="0" id="servicioPrecio" placeholder="Precio" oninput="validarPrecio()" onchange="validarPrecio()" />
+            <select id="servicioEstado">
+                <option value="ACTIVO">ACTIVO</option>
+                <option value="INACTIVO">INACTIVO</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="cerrarModalServicio()">Cancelar</button>
+                <button class="btn-save" onclick="guardarServicio()">Guardar</button>
             </div>
         </div>
     </div>
@@ -506,6 +531,9 @@
         const API_URL = 'http://localhost:4000/api';
         let token = localStorage.getItem('token');
         let reservaSeleccionada = null;
+        let servicioEditando = null;
+        let serviciosCache = [];
+        let reservasCache = [];
 
         if (!token) {
             window.location.href = '/login.html';
@@ -529,6 +557,13 @@
             } catch (error) { console.error('Error:', error); }
         }
 
+        function normalizarTexto(valor) {
+            if (valor === undefined || valor === null) return '';
+            const texto = String(valor).trim();
+            if (!texto || texto.toLowerCase() === 'undefined' || texto.toLowerCase() === 'null') return '';
+            return texto;
+        }
+
         async function cargarReservasActivas() {
             try {
                 const response = await fetch(`${API_URL}/reservas/activas`, {
@@ -536,21 +571,78 @@
                 });
                 if (response.ok) {
                     const reservas = await response.json();
-                    const select = document.getElementById('selectReserva');
-                    select.innerHTML = '<option value="">Seleccione una reserva...</option>';
-                    
-                    reservas.forEach(r => {
-                        const option = document.createElement('option');
-                        option.value = r.id;
-                        const cliente = r.cliente || r.docIdCliente || 'Cliente';
-                        const habitacion = r.idHabitacion || r.id_habitacion || r.habitacion || r.numeroHabitacion || r.numero || r.roomNumber || r.idRoom || '—';
-                        option.textContent = `RES-${r.id} | ${cliente} | Hab. ${habitacion}`;
-                        select.appendChild(option);
-                    });
+                    reservasCache = reservas;
+                    document.getElementById('selectReserva').value = '';
+                    document.getElementById('reservasDropdown').innerHTML = '';
                 }
             } catch (error) {
                 console.error('Error:', error);
             }
+        }
+
+        function filtrarReservas() {
+            const input = document.getElementById('selectReserva');
+            const searchTerm = input.value.trim().toLowerCase();
+            const dropdown = document.getElementById('reservasDropdown');
+
+            if (!searchTerm) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            const filtrados = reservasCache.filter(r => {
+                // Normalizar todos los campos
+                const reservaId = (r.id || r.idReserva || '').toString().toLowerCase();
+                const nombres = (r.nombres || '').toLowerCase();
+                const apellidos = (r.apellidos || '').toLowerCase();
+                const docId = (r.docIdCliente || r.docId || '').toString().toLowerCase();
+                const habitacion = (r.numeroHabitacion || r.habitacion || r.numero || '').toString().toLowerCase();
+                const cliente = (r.cliente || '').toLowerCase();
+                
+                // Buscar en múltiples campos
+                return reservaId.includes(searchTerm) ||           // Por ID de reserva
+                       nombres.includes(searchTerm) ||             // Por primer nombre
+                       apellidos.includes(searchTerm) ||           // Por apellido
+                       `${nombres} ${apellidos}`.includes(searchTerm) || // Por nombre completo
+                       docId.includes(searchTerm) ||               // Por documento
+                       habitacion.includes(searchTerm) ||          // Por habitación
+                       cliente.includes(searchTerm);               // Por campo cliente
+            });
+
+            if (filtrados.length === 0) {
+                dropdown.innerHTML = '<div style="padding: 10px; color: #999;">No hay coincidencias</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+
+            dropdown.innerHTML = filtrados.map(r => {
+                const reservaId = normalizarTexto(r.id) || normalizarTexto(r.idReserva) || '—';
+                const clienteRaw = r.cliente || r.docIdCliente || r.nombre || r.nombres || '';
+                const apellidoRaw = r.apellidos || '';
+                const clienteNombre = normalizarTexto(clienteRaw) || normalizarTexto(`${r.nombres || ''} ${apellidoRaw}`) || normalizarTexto(r.docIdCliente) || 'Cliente';
+                const habitacion = normalizarTexto(r.habitacion) ||
+                    normalizarTexto(r.tipoHabitacion) ||
+                    normalizarTexto(r.numeroHabitacion) ||
+                    normalizarTexto(r.numero) ||
+                    normalizarTexto(r.roomNumber) ||
+                    normalizarTexto(r.idHabitacion) ||
+                    normalizarTexto(r.id_habitacion) ||
+                    normalizarTexto(r.idRoom) ||
+                    '—';
+                
+                return `<div style="padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; hover:background: #f5f5f5;" onclick="seleccionarReserva(${r.id}, 'RES-${reservaId} | ${clienteNombre} | Hab. ${habitacion}')">
+                    RES-${reservaId} | ${clienteNombre} | Hab. ${habitacion}
+                </div>`;
+            }).join('');
+
+            dropdown.style.display = 'block';
+        }
+
+        function seleccionarReserva(reservaId, displayText) {
+            document.getElementById('selectReserva').value = displayText;
+            document.getElementById('reservasDropdown').style.display = 'none';
+            reservaSeleccionada = reservaId;
+            cargarConsumos(reservaId);
         }
 
         async function cargarServicios() {
@@ -559,22 +651,146 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
-                    const servicios = await response.json();
-                    const select = document.getElementById('selectServicio');
-                    select.innerHTML = '<option value="">Seleccione un servicio...</option>';
-                    
-                    servicios.forEach(s => {
-                        const option = document.createElement('option');
-                        option.value = s.id;
-                        // Usar descripcion (como viene de tu DB) o tipo
-                        const nombre = s.descripcion || s.tipo || s.nombre || 'Servicio';
-                        const precio = s.precio || 0;
-                        option.textContent = `${nombre} - $${parseFloat(precio).toFixed(2)}`;
-                        select.appendChild(option);
-                    });
+                    serviciosCache = await response.json();
+                    renderServiciosSelect(serviciosCache);
+                    renderServiciosList(serviciosCache);
                 }
             } catch (error) {
                 console.error('Error:', error);
+            }
+        }
+
+        function renderServiciosSelect(servicios) {
+            const select = document.getElementById('selectServicio');
+            select.innerHTML = '<option value="">Seleccione un servicio...</option>';
+            servicios.forEach(s => {
+                if (s.estado === 'INACTIVO') return;
+                const option = document.createElement('option');
+                option.value = s.id;
+                const nombre = s.descripcion || s.tipo || s.nombre || 'Servicio';
+                const precio = parseFloat(s.precio) || 0;
+                option.textContent = `${nombre} - $${precio.toFixed(2)}`;
+                select.appendChild(option);
+            });
+        }
+
+        function renderServiciosList(servicios) {
+            const list = document.getElementById('serviciosList');
+            if (!servicios || servicios.length === 0) {
+                list.innerHTML = '<div class="empty-message">No hay servicios registrados</div>';
+                return;
+            }
+
+            list.innerHTML = servicios.map(s => {
+                const nombre = s.descripcion || s.tipo || s.nombre || 'Servicio';
+                const precio = parseFloat(s.precio) || 0;
+                return `
+                    <div class="servicio-item">
+                        <div>
+                            <div class="servicio-nombre">${nombre}</div>
+                            <div class="servicio-precio">$${precio.toFixed(2)} • ${s.estado || 'ACTIVO'}</div>
+                        </div>
+                        <div>
+                            <button class="btn-small" onclick="abrirModalServicio(${s.id})">Editar</button>
+                            <button class="btn-small" onclick="eliminarServicio(${s.id})" style="background:#DC2626">Eliminar</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function abrirModalServicio(id = null) {
+            servicioEditando = null;
+            document.getElementById('modalTitulo').innerText = id ? 'Editar Servicio' : 'Nuevo Servicio';
+            document.getElementById('servicioNombre').value = '';
+            document.getElementById('servicioDescripcion').value = '';
+            document.getElementById('servicioPrecio').value = '0.00';
+            document.getElementById('servicioEstado').value = 'ACTIVO';
+
+            if (id) {
+                const servicio = serviciosCache.find(s => s.id === id);
+                if (servicio) {
+                    servicioEditando = servicio;
+                    document.getElementById('servicioNombre').value = servicio.descripcion || servicio.tipo || servicio.nombre || '';
+                    document.getElementById('servicioDescripcion').value = servicio.descripcion || servicio.tipo || servicio.nombre || '';
+                    const precio = parseFloat(servicio.precio || 0);
+                    document.getElementById('servicioPrecio').value = precio.toFixed(2);
+                    document.getElementById('servicioEstado').value = servicio.estado || 'ACTIVO';
+                }
+            }
+
+            document.getElementById('servicioModal').style.display = 'flex';
+        }
+
+        function cerrarModalServicio() {
+            document.getElementById('servicioModal').style.display = 'none';
+            servicioEditando = null;
+        }
+
+        async function guardarServicio() {
+            const nombre = document.getElementById('servicioNombre').value.trim();
+            const descripcion = document.getElementById('servicioDescripcion').value.trim();
+            let precio = parseFloat(document.getElementById('servicioPrecio').value) || 0;
+            const estado = document.getElementById('servicioEstado').value;
+
+            if (!nombre) {
+                alert('Ingrese un nombre de servicio');
+                return;
+            }
+
+            // Validar que el precio no sea negativo
+            if (precio < 0) {
+                alert('El precio no puede ser negativo');
+                document.getElementById('servicioPrecio').value = '0.00';
+                return;
+            }
+
+            const payload = { nombre, descripcion: descripcion || nombre, precio, estado };
+            const url = servicioEditando ? `${API_URL}/servicios/${servicioEditando.id}` : `${API_URL}/servicios`;
+            const method = servicioEditando ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    alert(data.message || 'Error al guardar el servicio');
+                    return;
+                }
+
+                alert(data.message || 'Servicio guardado correctamente');
+                cerrarModalServicio();
+                cargarServicios();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al conectar con el servidor');
+            }
+        }
+
+        async function eliminarServicio(id) {
+            if (!confirm('¿Desea eliminar este servicio? Esta acción no se puede deshacer.')) return;
+            try {
+                const response = await fetch(`${API_URL}/servicios/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    alert(data.message || 'Error al eliminar servicio');
+                    return;
+                }
+                alert(data.message || 'Servicio eliminado correctamente');
+                cargarServicios();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al conectar con el servidor');
             }
         }
 
@@ -607,16 +823,19 @@
                 return;
             }
 
-            tbody.innerHTML = consumos.map(c => `
+            tbody.innerHTML = consumos.map(c => {
+                const precioUnit = parseFloat(c.precioUnit || c.precioUnitario || 0);
+                const subtotal = parseFloat(c.subtotal || 0);
+                return `
                 <tr>
                     <td>${c.fecha ? new Date(c.fecha).toLocaleDateString() : '-'}</td>
                     <td>${c.descripcion || c.nombre || 'Servicio'}</td>
                     <td>${c.cantidad || 0}</td>
-                    <td>$${parseFloat(c.precioUnit || c.precioUnitario || 0).toFixed(2)}</td>
-                    <td>$${parseFloat(c.subtotal || 0).toFixed(2)}</td>
+                    <td>$${precioUnit.toFixed(2)}</td>
+                    <td>$${subtotal.toFixed(2)}</td>
                     <td><button class="delete-consumo" onclick="eliminarConsumo(${c.id})">🗑️</button></td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         async function cargarTotal(idReserva) {
@@ -635,6 +854,14 @@
             }
         }
 
+        function validarCantidad() {
+            const input = document.getElementById('cantidadServicio');
+            let valor = parseInt(input.value) || 1;
+            // Asegurar que sea positivo y mínimo 1
+            valor = Math.max(1, valor);
+            input.value = valor;
+        }
+
         function cambiarCantidad(delta) {
             const input = document.getElementById('cantidadServicio');
             let valor = parseInt(input.value) || 1;
@@ -642,10 +869,25 @@
             input.value = valor;
         }
 
+        function validarPrecio() {
+            const input = document.getElementById('servicioPrecio');
+            let valor = parseFloat(input.value) || 0;
+            // Asegurar que sea positivo
+            valor = Math.max(0, valor);
+            input.value = valor;
+        }
+
         async function agregarConsumo() {
-            const idReserva = document.getElementById('selectReserva').value;
+            const idReserva = reservaSeleccionada;
             const idServicio = document.getElementById('selectServicio').value;
-            const cantidad = parseInt(document.getElementById('cantidadServicio').value);
+            let cantidad = parseInt(document.getElementById('cantidadServicio').value) || 1;
+            
+            // Validar cantidad
+            if (cantidad < 1) {
+                alert('La cantidad debe ser mayor a 0');
+                document.getElementById('cantidadServicio').value = 1;
+                return;
+            }
 
             if (!idReserva) {
                 alert('Seleccione una reserva activa');
@@ -706,6 +948,12 @@
         cargarUsuario();
         cargarReservasActivas();
         cargarServicios();
+
+        // Agregar validación inicial al cargar
+        document.getElementById('cantidadServicio').addEventListener('blur', validarCantidad);
+        if (document.getElementById('servicioPrecio')) {
+            document.getElementById('servicioPrecio').addEventListener('blur', validarPrecio);
+        }
     </script>
 </body>
 </html>
